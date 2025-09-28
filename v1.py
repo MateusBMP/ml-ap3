@@ -1,8 +1,6 @@
 from sklearn.cluster import DBSCAN, KMeans
-from sklearn.mixture import GaussianMixture
-from sklearn import tree
 
-import matplotlib.pyplot as plt
+import common
 import numpy as np
 import pandas as pd
 
@@ -15,22 +13,14 @@ df = df.drop(columns=["ID"])
 # Remove the column Correto
 df = df.drop(columns=["Correto"])
 
+# Normalize the dataset
+df = (df - df.min()) / (df.max() - df.min())
+
 # Some analysis on the dataset
-print("##### Dataset Analysis #####")
-print("Dataset shape:", df.shape)
-print("First 5 rows of the dataset:")
-print(df.head())
-print("Column names:", df.columns.tolist())
-print("Missing values in each column:")
-print(df.isnull().sum())
-print("Statistical summary of the dataset:")
-print(df.describe())
-print("Data types of each column:")
-print(df.dtypes)
-print()
+common.dataset_analysis(df)
 
 # Apply DBSCAN clustering algorithm
-clustering = DBSCAN(eps=0.5, min_samples=5).fit(df)
+clustering = DBSCAN(eps=0.075, min_samples=5).fit(df)
 df['Cluster'] = clustering.labels_
 
 # Print clustering results
@@ -43,20 +33,19 @@ for cluster in np.unique(clustering.labels_):
     print(sub_df.head())
 
 # Creating decision tree to understand clusters
-X = df.drop(columns=["Cluster"])
-y = df["Cluster"]
-plt.figure(figsize=(200,100))
-clf = tree.DecisionTreeClassifier()
-clf.fit(X, y)
-tree.plot_tree(clf, filled=True)
-plt.title("Decision Tree for Clusters")
-plt.savefig("decision_tree.png")
+common.plot_decision_tree(df, filename="dt_v1_1.png")
+
+# Plot scatter plot for all pairs of features
+common.plot_scatter_matrix(df, filename="sc_v1_1.png")
+
+# Print distances between clusters
+common.distance(df, output=True)
 
 # Apply KMeans clustering algorithm only in the data points that were classified as noise or assigned to cluster 0
-noise_df = df[df['Cluster'] == -1].drop(columns=["Cluster"])
-cluster_0 = df[df['Cluster'] == 0].drop(columns=["Cluster"])
+noise_df = df[df['Cluster'] == -1]
+cluster_0 = df[df['Cluster'] == 0]
 combined_df = pd.concat([noise_df, cluster_0])
-kmeans = KMeans(n_clusters=3, random_state=42).fit(combined_df)
+kmeans = KMeans(n_clusters=8, random_state=42).fit(combined_df.drop(columns=['Cluster']))
 df.loc[combined_df.index, 'Cluster'] = kmeans.labels_ + df['Cluster'].max() + 1
 
 # Print new clustering results
@@ -70,11 +59,10 @@ for cluster in np.unique(df['Cluster']):
     print()
 
 # Creating, again, decision tree to understand clusters
-X = df.drop(columns=["Cluster"])
-y = df["Cluster"]
-plt.figure(figsize=(200,100))
-clf = tree.DecisionTreeClassifier()
-clf.fit(X, y)
-tree.plot_tree(clf, filled=True)
-plt.title("Decision Tree for Clusters")
-plt.savefig("decision_tree_v2.png")
+common.plot_decision_tree(df, filename="dt_v1_2.png")
+
+# Plot scatter plot for all pairs of features
+common.plot_scatter_matrix(df, filename="sc_v1_2.png")
+
+# Print distances between clusters
+common.distance(df, output=True)
